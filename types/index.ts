@@ -1,4 +1,5 @@
 // 基本型定義
+export * from './database';
 export interface User {
   id: string;
   email: string;
