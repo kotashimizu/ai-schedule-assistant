@@ -19,7 +19,8 @@
       "Bash(/usr/local/Cellar/supabase/2.30.4/bin/supabase start)",
       "Bash(psql:*)",
       "Bash(curl:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(/usr/local/Cellar/supabase/2.30.4/bin/supabase db push)"
     ],
     "deny": []
   }
