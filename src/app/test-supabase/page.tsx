@@ -18,7 +18,7 @@ export default function TestSupabasePage() {
       setError(null);
 
       // 1. 基本接続テスト
-      const { data: connectionTest, error: connectionError } = await supabase
+      const { error: connectionError } = await supabase
         .from('users')
         .select('count', { count: 'exact', head: true });
 
@@ -33,7 +33,7 @@ export default function TestSupabasePage() {
         'tasks',
         'notifications',
         'analytics_logs'
-      ];
+      ] as const;
 
       const tableChecks = await Promise.all(
         tableQueries.map(async (table) => {

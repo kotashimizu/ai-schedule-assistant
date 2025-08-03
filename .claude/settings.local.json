@@ -20,7 +20,9 @@
       "Bash(psql:*)",
       "Bash(curl:*)",
       "Bash(pkill:*)",
-      "Bash(/usr/local/Cellar/supabase/2.30.4/bin/supabase db push)"
+      "Bash(/usr/local/Cellar/supabase/2.30.4/bin/supabase db push)",
+      "Bash(npm run lint)",
+      "Bash(npm run build:*)"
     ],
     "deny": []
   }

@@ -2,11 +2,7 @@ import { supabase } from './client';
 import type { Database } from '@/types/database';
 
 type Tables = Database['public']['Tables'];
-type User = Tables['users']['Row'];
-type Event = Tables['events']['Row'];
 type Task = Tables['tasks']['Row'];
-type Notification = Tables['notifications']['Row'];
-type AnalyticsLog = Tables['analytics_logs']['Row'];
 
 // ユーザー操作
 export const userService = {
@@ -230,7 +226,7 @@ export const notificationService = {
 // 分析ログ操作
 export const analyticsService = {
   // ログ記録
-  async log(userId: string, action: string, data?: Record<string, any>) {
+  async log(userId: string, action: string, data?: Record<string, unknown>) {
     const { error } = await supabase
       .from('analytics_logs')
       .insert({
