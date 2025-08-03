@@ -3,10 +3,12 @@
 ## 🔴 重要: 各タスク完了時の必須GitHub操作
 
 **毎回のワークフロー:**
-1. ✅ タスクのチェックボックスを [ ] → [x] に更新
+1. 🔴 **必須** タスクのチェックボックスを [ ] → [x] に更新
 2. 📝 コミット作成: `git add . && git commit -m "[指定されたコミット名]"`
 3. 🚀 プッシュ実行: `git push origin [branch-name]`
 4. 🌿 次タスク用ブランチ作成: `git checkout -b feature/[次のタスク名]`
+
+**🚨 重要:** 毎回必ずこのタスクファイル(.kiro/specs/ai-schedule-assistant/tasks.md)のチェックボックスを更新すること！
 
 ---
 
@@ -17,7 +19,7 @@
   - 基本的なプロジェクト構造とTypeScript設定を構築
   - _要件: 要件1, 要件8_
 
-- [ ] 1.1 Next.js プロジェクトセットアップ
+- [x] 1.1 Next.js プロジェクトセットアップ
   - Next.js 14 (App Router)プロジェクトを作成
   - TypeScript、ESLint、Tailwind CSSの設定
   - 基本的なフォルダ構造（app, components, lib, types）を構築
@@ -26,7 +28,7 @@
   - **ブランチ名**: `feature/nextjs-setup`
   - **GitHub操作**: ✅コミット → ✅プッシュ → ✅新ブランチ作成
 
-- [ ] 1.2 Supabase統合とデータベース設計
+- [x] 1.2 Supabase統合とデータベース設計
   - Supabaseプロジェクトの作成と接続設定
   - データベーススキーマ（users, events, tasks, notifications, analytics_logs）を実装
   - 基本的なuser_idフィルタリングを実装（RLSは後のフェーズで実装）
