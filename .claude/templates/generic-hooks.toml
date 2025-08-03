@@ -1,0 +1,296 @@
+# AI駆動開発用 Claude Code Hooks設定テンプレート
+# Claude Codeによる要件定義→設計→実装→検証サイクルの完全自動化
+
+# ===== AI駆動開発哲学 =====
+# 1. 人間：戦略・要件定義・品質確認
+# 2. AI：設計・実装・テスト・ドキュメント
+# 3. Hooks：開発プロセスの一貫性保証
+
+# ===== 設定変数説明 =====
+# PROJECT_SLUG: プロジェクトのスラッグ名（例: shift-management-system）
+# 固定パス構造: .kiro/specs/PROJECT_SLUG/
+#   - requirements.md: 要件定義書（人間が定義）
+#   - design.md: 設計書（AI支援で作成）
+#   - tasks.md: タスクファイル（AI支援で管理）
+
+# ===== コード編集前 - 要件定義書確認 =====
+[[hooks]]
+event = "PreToolUse"
+[hooks.matcher]
+tool_name = "edit_file"
+command = '''
+echo "📋 PROJECT_NAME 要件定義確認 - $(date +%H:%M)"
+if [ -f "./.kiro/specs/PROJECT_SLUG/requirements.md" ]; then
+    echo "==================== 要件定義書 ===================="
+    cat ./.kiro/specs/PROJECT_SLUG/requirements.md | head -20
+    echo "===================================================="
+else
+    echo "⚠️  要件定義書が見つかりません: ./.kiro/specs/PROJECT_SLUG/requirements.md"
+fi
+'''
+
+# ===== コード編集前 - 設計書確認（重要ファイル） =====
+[[hooks]]
+event = "PreToolUse"
+[hooks.matcher]
+tool_name = "edit_file"
+file_paths = ["src/**/*.py", "src/**/*.js", "src/**/*.ts", "components/**/*", "pages/**/*", "app/**/*"]
+command = '''
+echo "🏗️  PROJECT_NAME 設計書確認"
+if [ -f "./.kiro/specs/PROJECT_SLUG/design.md" ]; then
+    echo "--- システム設計方針 ---"
+    cat ./.kiro/specs/PROJECT_SLUG/design.md | head -15
+    echo "--- 技術スタック ---"
+    grep -A10 "技術スタック\|技術構成\|Tech Stack" ./.kiro/specs/PROJECT_SLUG/design.md || echo "技術スタック情報なし"
+else
+    echo "⚠️  設計書が見つかりません: ./.kiro/specs/PROJECT_SLUG/design.md"
+fi
+'''
+
+# ===== コード編集後 - タスク進捗確認 =====
+[[hooks]]
+event = "PostToolUse"
+[hooks.matcher]
+tool_name = "edit_file"
+command = '''
+echo "✅ 編集完了: $(basename $CLAUDE_FILE_PATHS)"
+echo "📋 PROJECT_NAME タスク状況:"
+if [ -f "./.kiro/specs/PROJECT_SLUG/tasks.md" ]; then
+    echo "--- 未完了タスク ---"
+    grep -E "\\- \\[ \\]" ./.kiro/specs/PROJECT_SLUG/tasks.md | head -5
+    echo "--- 完了済みタスク ---"
+    grep -E "\\- \\[x\\]" ./.kiro/specs/PROJECT_SLUG/tasks.md | tail -3
+else
+    echo "⚠️  タスクファイルが見つかりません: ./.kiro/specs/PROJECT_SLUG/tasks.md"
+fi
+'''
+
+# ===== コード編集後 - 関連タスクチェック =====
+[[hooks]]
+event = "PostToolUse"
+[hooks.matcher]
+tool_name = "edit_file"
+command = '''
+echo "🎯 編集ファイル関連タスク確認"
+filename=$(basename $CLAUDE_FILE_PATHS)
+if [ -f "./.kiro/specs/PROJECT_SLUG/tasks.md" ]; then
+    echo "--- $filename 関連タスク ---"
+    grep -i "$filename\|$(echo $filename | cut -d. -f1)" ./.kiro/specs/PROJECT_SLUG/tasks.md || echo "関連タスクなし"
+fi
+'''
+
+# ===== 作業開始時 - スケジュール確認 =====
+[[hooks]]
+event = "PreToolUse"
+[hooks.matcher]
+tool_name = "edit_file"
+file_paths = ["src/**/*", "components/**/*", "pages/**/*", "app/**/*", "*.py", "*.js", "*.ts"]
+command = '''
+echo "⏰ PROJECT_NAME スケジュール確認 - $(date +%Y-%m-%d)"
+if [ -f "./docs/schedule.md" ] || [ -f "./schedule/milestones.md" ]; then
+    echo "📅 直近のマイルストーン:"
+    (cat ./docs/schedule.md ./schedule/milestones.md 2>/dev/null | grep -A3 -B1 "$(date +%Y-%m)" | head -10) || echo "スケジュール情報なし"
+else
+    echo "⚠️  スケジュールファイルが見つかりません"
+fi
+'''
+
+# ===== 進捗ログ記録 =====
+[[hooks]]
+event = "PostToolUse"
+run_in_background = true
+[hooks.matcher]
+tool_name = "edit_file"
+command = '''
+mkdir -p ./progress
+echo "$(date +%Y-%m-%d\ %H:%M) - PROJECT_NAME編集完了: $CLAUDE_FILE_PATHS" >> ./progress/daily-log.md
+echo "📊 今日の作業履歴:"
+grep "$(date +%Y-%m-%d)" ./progress/daily-log.md 2>/dev/null | tail -3 || echo "本日初回の作業です"
+'''
+
+# ===== コミット前 - 品質チェックリスト =====
+[[hooks]]
+event = "PreToolUse"
+[hooks.matcher]
+tool_name = "git_commit"
+command = '''
+echo "🔍 PROJECT_NAME コミット前チェックリスト"
+echo "📝 確認項目:"
+echo "- [ ] 要件定義を満たしているか？"
+echo "- [ ] 設計書の技術スタックに準拠しているか？"
+echo "- [ ] セキュリティ要件は適切か？"
+echo "- [ ] UI/UX要件は満たしているか？"
+echo "- [ ] テストは通るか？"
+echo ""
+echo "💡 関連する要件定義項目を確認してください"
+if [ -f "./.kiro/specs/PROJECT_SLUG/requirements.md" ]; then
+    echo "要件定義書: ./.kiro/specs/PROJECT_SLUG/requirements.md"
+fi
+'''
+
+# ===== 学習ログ記録 =====
+[[hooks]]
+event = "PostToolUse"
+run_in_background = true
+[hooks.matcher]
+tool_name = "edit_file"
+file_paths = ["src/**/*", "components/**/*", "*.py", "*.js", "*.ts"]
+command = '''
+mkdir -p ./learning
+{
+    echo "## $(date +%Y-%m-%d\ %H:%M) - PROJECT_NAME実装完了"
+    echo "- **ファイル**: $CLAUDE_FILE_PATHS"
+    echo "- **関連要件**: [後で記入]"
+    echo "- **学習ポイント**: [後で記入]"
+    echo "- **課題**: [後で記入]"
+    echo ""
+} >> ./learning/learning-log.md
+'''
+
+# ===== サブタスク完了時の自動ワークフロー =====
+[[hooks]]
+event = "PostToolUse"
+[hooks.matcher]
+tool_name = "git_commit"
+command = '''
+echo "🎯 サブタスク完了ワークフロー"
+echo "1. ✅ タスクファイルのチェックボックス更新 [ ] → [x]"
+echo "2. 📝 わかりやすいコミットメッセージを作成済み"
+echo "3. 🚀 次の手順："
+echo "   - git push origin [current-branch]"
+echo "   - 新しいfeatureブランチ作成（次のサブタスク用）"
+echo ""
+echo "現在のコミット内容:"
+git show --name-only HEAD 2>/dev/null || echo "コミット内容確認中..."
+echo ""
+echo "💡 サブタスク完了後はブランチを切って次の作業に進む"
+'''
+
+# ===== 技術判断チェック =====
+[[hooks]]
+event = "PreToolUse"
+[hooks.matcher]
+tool_name = "edit_file"
+command = '''
+echo "🔍 技術判断チェック"
+echo "========================================="
+echo "1. ✅ この技術選択はベストプラクティスに沿っているか？"
+echo "2. ✅ プロジェクト要求に最適か？"
+echo "3. ✅ 長期的メンテナンス性は確保されているか？"
+echo "4. ✅ 業界標準から逸脱していないか？"
+echo "5. ✅ プロジェクト成功を最優先にしているか？"
+echo ""
+echo "⚠️  重要：感情的判断で技術判断を歪めない"
+echo "⚠️  プロの責任：最適解の提示が使命"
+echo "========================================="
+'''
+
+# ===== 重大エラー防止チェック =====
+[[hooks]]
+event = "PreToolUse"
+[hooks.matcher]
+tool_name = "git_commit"
+command = '''
+echo "🚨 重大エラー防止チェック"
+echo "以下の妥協は絶対避ける："
+echo "❌ 環境構築の後回し → 環境差異エラー"
+echo "❌ セキュリティの簡素化 → データ漏洩リスク" 
+echo "❌ テストの省略 → 本番障害"
+echo "❌ 設計の簡略化 → 技術的負債"
+echo "❌ 要件の勝手な変更 → 仕様不整合"
+echo ""
+echo "✅ プロとして妥協せず、正しい実装を行う"
+'''
+
+# ===== 安全性チェック =====
+[[hooks]]
+event = "PreToolUse"
+[hooks.matcher]
+tool_name = "bash"
+command = '''
+echo "🚨 安全性確認"
+if [ -f "./.kiro/specs/PROJECT_SLUG/tasks.md" ]; then
+    grep -A3 "禁止\|注意\|リスク" ./.kiro/specs/PROJECT_SLUG/tasks.md 2>/dev/null || echo "特別な注意事項なし"
+    echo ""
+    echo "✅ 必須: ユーザーの明示的許可を得る"
+else
+    echo "⚠️  タスクファイルが見つかりません"
+fi
+'''
+
+# ===== AI駆動開発品質チェック =====
+[[hooks]]
+event = "PreToolUse"
+[hooks.matcher]
+tool_name = "edit_file"
+command = '''
+echo "🤖 AI駆動開発品質チェック"
+echo "========================================="
+echo "1. ✅ AI実装 → 人間確認の流れが適切か？"
+echo "2. ✅ 要件定義に基づいた実装内容か？"
+echo "3. ✅ Claude Codeツールを最適活用しているか？"
+echo "4. ✅ プロンプトが明確で具体的か？"
+echo "5. ✅ AI任せでなく、品質確認を行っているか？"
+echo ""
+echo "🎯 AI駆動開発の原則："
+echo "   - AI：高速実装・パターン認識・ドキュメント化"
+echo "   - 人間：戦略決定・品質保証・創造的判断"
+echo "========================================="
+'''
+
+# ===== Claude Code最適化チェック =====
+[[hooks]]
+event = "PreToolUse"
+[hooks.matcher]
+tool_name = "edit_file"
+file_paths = ["src/**/*", "components/**/*", "*.py", "*.js", "*.ts", "*.jsx", "*.tsx"]
+command = '''
+echo "⚡ Claude Code最適化確認"
+echo "Claude Codeツール活用チェック："
+echo "✅ Read/Write/Edit → ファイル操作の効率化"
+echo "✅ Grep/Glob → 大規模検索の活用"
+echo "✅ Bash → 開発タスクの自動化"
+echo "✅ Task → 複雑な調査・分析の委譲"
+echo ""
+echo "💡 最適化のポイント："
+echo "   - 大量のファイル検索はGrepツールを活用"
+echo "   - 複雑な分析はTaskツールで専門エージェントに委譲"
+echo "   - 繰り返し作業はBashで自動化"
+'''
+
+# ===== AI開発サイクル確認 =====
+[[hooks]]
+event = "PostToolUse"
+[hooks.matcher]
+tool_name = "edit_file"
+command = '''
+echo "🔄 AI開発サイクル確認"
+echo "現在のフェーズ: 実装 ✅"
+echo ""
+echo "次のステップ："
+echo "1. 📋 要件との整合性確認"
+echo "2. 🧪 テスト実施（自動/手動）"
+echo "3. 📚 ドキュメント更新"
+echo "4. 🔍 コードレビュー（人間による品質確認）"
+echo "5. 🚀 デプロイ準備"
+echo ""
+echo "⚠️  重要: AIが実装 → 人間が検証・承認"
+'''
+
+# ===== プロンプトエンジニアリング品質チェック =====
+[[hooks]]
+event = "PreToolUse"
+[hooks.matcher]
+tool_name = "bash"
+command = '''
+echo "📝 プロンプトエンジニアリング品質確認"
+echo "高品質AIプロンプトの条件："
+echo "✅ 具体的: 曖昧さを排除した明確な指示"
+echo "✅ 文脈付き: 要件定義・設計書を参照"
+echo "✅ 段階的: 複雑タスクは分割して指示"
+echo "✅ 検証可能: 結果の確認方法を明示"
+echo "✅ 制約明確: 守るべきルール・制限を指定"
+echo ""
+echo "💎 例: 良いプロンプト"
+echo "「requirements.mdの要件3に基づいて、認証機能のAPI設計書を作成してください。RESTful原則に従い、セキュリティベストプラクティスを適用してください。」"
+'''
