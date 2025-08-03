@@ -12,7 +12,14 @@
       "Bash(git push:*)",
       "Bash(npm install:*)",
       "Bash(npm run type-check:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(supabase:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(/usr/local/Cellar/supabase/2.30.4/bin/supabase status)",
+      "Bash(/usr/local/Cellar/supabase/2.30.4/bin/supabase start)",
+      "Bash(psql:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)"
     ],
     "deny": []
   }
