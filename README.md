@@ -47,7 +47,7 @@ AI Schedule Assistantは、Google Calendarとの双方向同期、OpenAI GPT-4o�
 
 ```bash
 # リポジトリクローン
-git clone https://github.com/[username]/ai-schedule-assistant.git
+git clone https://github.com/kotashimizu/ai-schedule-assistant.git
 cd ai-schedule-assistant
 
 # 依存関係インストール
@@ -100,20 +100,21 @@ DISCORD_WEBHOOK_URL=your_discord_webhook_url
 ### プロジェクト構造
 ```
 ai-schedule-assistant/
-├── app/                    # Next.js App Router
-│   ├── dashboard/         # メインダッシュボード
-│   ├── settings/          # 設定画面
-│   └── api/              # API Routes
-├── components/            # React コンポーネント
-│   ├── ui/               # 再利用可能UIコンポーネント
-│   ├── calendar/         # カレンダー関連
-│   └── tasks/            # タスク管理関連
-├── lib/                  # ユーティリティ・設定
-│   ├── supabase/         # Supabase クライアント
-│   ├── openai/           # OpenAI API
-│   └── google/           # Google Calendar API
-├── types/                # TypeScript 型定義
-└── .kiro/specs/         # プロジェクト仕様書
+├── src/
+│   ├── app/              # Next.js App Router
+│   │   ├── dashboard/    # メインダッシュボード
+│   │   ├── settings/     # 設定画面
+│   │   └── api/         # API Routes
+│   └── components/       # React コンポーネント
+│       ├── ui/          # 再利用可能UIコンポーネント
+│       ├── calendar/    # カレンダー関連
+│       └── tasks/       # タスク管理関連
+├── lib/                 # ユーティリティ・設定
+│   ├── supabase/        # Supabase クライアント
+│   ├── openai/          # OpenAI API
+│   └── google/          # Google Calendar API
+├── types/               # TypeScript 型定義
+└── .kiro/specs/        # プロジェクト仕様書
 ```
 
 ### データベース設計
