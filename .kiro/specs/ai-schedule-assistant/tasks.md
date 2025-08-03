@@ -28,7 +28,7 @@
   - **ブランチ名**: `feature/nextjs-setup`
   - **GitHub操作**: ✅コミット → ✅プッシュ → ✅新ブランチ作成
 
-- [x] 1.2 Supabase統合とデータベース設計
+- [ ] 1.2 Supabase統合とデータベース設計
   - Supabaseプロジェクトの作成と接続設定
   - データベーススキーマ（users, events, tasks, notifications, analytics_logs）を実装
   - 基本的なuser_idフィルタリングを実装（RLSは後のフェーズで実装）
