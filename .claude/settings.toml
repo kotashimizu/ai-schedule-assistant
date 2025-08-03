@@ -7,8 +7,8 @@
 # 3. Hooks：開発プロセスの一貫性保証
 
 # ===== 設定変数説明 =====
-# task-flow-system: プロジェクトのスラッグ名（例: shift-management-system）
-# 固定パス構造: .kiro/specs/task-flow-system/
+# ai-schedule-assistant: プロジェクトのスラッグ名（例: shift-management-system）
+# 固定パス構造: .kiro/specs/ai-schedule-assistant/
 #   - requirements.md: 要件定義書（人間が定義）
 #   - design.md: 設計書（AI支援で作成）
 #   - tasks.md: タスクファイル（AI支援で管理）
@@ -19,13 +19,13 @@ event = "PreToolUse"
 [hooks.matcher]
 tool_name = "edit_file"
 command = '''
-echo "📋 task-flow 要件定義確認 - $(date +%H:%M)"
-if [ -f "./.kiro/specs/task-flow-system/requirements.md" ]; then
+echo "📋 ai-schedule-assistant 要件定義確認 - $(date +%H:%M)"
+if [ -f "./.kiro/specs/ai-schedule-assistant/requirements.md" ]; then
     echo "==================== 要件定義書 ===================="
-    cat ./.kiro/specs/task-flow-system/requirements.md | head -20
+    cat ./.kiro/specs/ai-schedule-assistant/requirements.md | head -20
     echo "===================================================="
 else
-    echo "⚠️  要件定義書が見つかりません: ./.kiro/specs/task-flow-system/requirements.md"
+    echo "⚠️  要件定義書が見つかりません: ./.kiro/specs/ai-schedule-assistant/requirements.md"
 fi
 '''
 
@@ -36,14 +36,14 @@ event = "PreToolUse"
 tool_name = "edit_file"
 file_paths = ["src/**/*.py", "src/**/*.js", "src/**/*.ts", "components/**/*", "pages/**/*", "app/**/*"]
 command = '''
-echo "🏗️  task-flow 設計書確認"
-if [ -f "./.kiro/specs/task-flow-system/design.md" ]; then
+echo "🏗️  ai-schedule-assistant 設計書確認"
+if [ -f "./.kiro/specs/ai-schedule-assistant/design.md" ]; then
     echo "--- システム設計方針 ---"
-    cat ./.kiro/specs/task-flow-system/design.md | head -15
+    cat ./.kiro/specs/ai-schedule-assistant/design.md | head -15
     echo "--- 技術スタック ---"
-    grep -A10 "技術スタック\|技術構成\|Tech Stack" ./.kiro/specs/task-flow-system/design.md || echo "技術スタック情報なし"
+    grep -A10 "技術スタック\|技術構成\|Tech Stack" ./.kiro/specs/ai-schedule-assistant/design.md || echo "技術スタック情報なし"
 else
-    echo "⚠️  設計書が見つかりません: ./.kiro/specs/task-flow-system/design.md"
+    echo "⚠️  設計書が見つかりません: ./.kiro/specs/ai-schedule-assistant/design.md"
 fi
 '''
 
@@ -54,14 +54,14 @@ event = "PostToolUse"
 tool_name = "edit_file"
 command = '''
 echo "✅ 編集完了: $(basename $CLAUDE_FILE_PATHS)"
-echo "📋 task-flow タスク状況:"
-if [ -f "./.kiro/specs/task-flow-system/tasks.md" ]; then
+echo "📋 ai-schedule-assistant タスク状況:"
+if [ -f "./.kiro/specs/ai-schedule-assistant/tasks.md" ]; then
     echo "--- 未完了タスク ---"
-    grep -E "\\- \\[ \\]" ./.kiro/specs/task-flow-system/tasks.md | head -5
+    grep -E "\\- \\[ \\]" ./.kiro/specs/ai-schedule-assistant/tasks.md | head -5
     echo "--- 完了済みタスク ---"
-    grep -E "\\- \\[x\\]" ./.kiro/specs/task-flow-system/tasks.md | tail -3
+    grep -E "\\- \\[x\\]" ./.kiro/specs/ai-schedule-assistant/tasks.md | tail -3
 else
-    echo "⚠️  タスクファイルが見つかりません: ./.kiro/specs/task-flow-system/tasks.md"
+    echo "⚠️  タスクファイルが見つかりません: ./.kiro/specs/ai-schedule-assistant/tasks.md"
 fi
 '''
 
@@ -73,9 +73,9 @@ tool_name = "edit_file"
 command = '''
 echo "🎯 編集ファイル関連タスク確認"
 filename=$(basename $CLAUDE_FILE_PATHS)
-if [ -f "./.kiro/specs/task-flow-system/tasks.md" ]; then
+if [ -f "./.kiro/specs/ai-schedule-assistant/tasks.md" ]; then
     echo "--- $filename 関連タスク ---"
-    grep -i "$filename\|$(echo $filename | cut -d. -f1)" ./.kiro/specs/task-flow-system/tasks.md || echo "関連タスクなし"
+    grep -i "$filename\|$(echo $filename | cut -d. -f1)" ./.kiro/specs/ai-schedule-assistant/tasks.md || echo "関連タスクなし"
 fi
 '''
 
@@ -86,7 +86,7 @@ event = "PreToolUse"
 tool_name = "edit_file"
 file_paths = ["src/**/*", "components/**/*", "pages/**/*", "app/**/*", "*.py", "*.js", "*.ts"]
 command = '''
-echo "⏰ task-flow スケジュール確認 - $(date +%Y-%m-%d)"
+echo "⏰ ai-schedule-assistant スケジュール確認 - $(date +%Y-%m-%d)"
 if [ -f "./docs/schedule.md" ] || [ -f "./schedule/milestones.md" ]; then
     echo "📅 直近のマイルストーン:"
     (cat ./docs/schedule.md ./schedule/milestones.md 2>/dev/null | grep -A3 -B1 "$(date +%Y-%m)" | head -10) || echo "スケジュール情報なし"
@@ -103,7 +103,7 @@ run_in_background = true
 tool_name = "edit_file"
 command = '''
 mkdir -p ./progress
-echo "$(date +%Y-%m-%d\ %H:%M) - task-flow編集完了: $CLAUDE_FILE_PATHS" >> ./progress/daily-log.md
+echo "$(date +%Y-%m-%d\ %H:%M) - ai-schedule-assistant編集完了: $CLAUDE_FILE_PATHS" >> ./progress/daily-log.md
 echo "📊 今日の作業履歴:"
 grep "$(date +%Y-%m-%d)" ./progress/daily-log.md 2>/dev/null | tail -3 || echo "本日初回の作業です"
 '''
@@ -114,7 +114,7 @@ event = "PreToolUse"
 [hooks.matcher]
 tool_name = "git_commit"
 command = '''
-echo "🔍 task-flow コミット前チェックリスト"
+echo "🔍 ai-schedule-assistant コミット前チェックリスト"
 echo "📝 確認項目:"
 echo "- [ ] 要件定義を満たしているか？"
 echo "- [ ] 設計書の技術スタックに準拠しているか？"
@@ -123,28 +123,35 @@ echo "- [ ] UI/UX要件は満たしているか？"
 echo "- [ ] テストは通るか？"
 echo ""
 echo "💡 関連する要件定義項目を確認してください"
-if [ -f "./.kiro/specs/task-flow-system/requirements.md" ]; then
-    echo "要件定義書: ./.kiro/specs/task-flow-system/requirements.md"
+if [ -f "./.kiro/specs/ai-schedule-assistant/requirements.md" ]; then
+    echo "要件定義書: ./.kiro/specs/ai-schedule-assistant/requirements.md"
 fi
 '''
 
-# ===== 学習ログ記録 =====
+# ===== タスクファイル更新リマインダー =====
 [[hooks]]
 event = "PostToolUse"
-run_in_background = true
 [hooks.matcher]
 tool_name = "edit_file"
-file_paths = ["src/**/*", "components/**/*", "*.py", "*.js", "*.ts"]
+file_paths = ["src/**/*", "components/**/*", "*.py", "*.js", "*.ts", "*.jsx", "*.tsx"]
 command = '''
-mkdir -p ./learning
-{
-    echo "## $(date +%Y-%m-%d\ %H:%M) - task-flow実装完了"
-    echo "- **ファイル**: $CLAUDE_FILE_PATHS"
-    echo "- **関連要件**: [後で記入]"
-    echo "- **学習ポイント**: [後で記入]"
-    echo "- **課題**: [後で記入]"
-    echo ""
-} >> ./learning/learning-log.md
+echo "📋 重要: タスクファイル更新を忘れずに"
+echo "=================================="
+echo "🔴 必須アクション:"
+echo "1. タスクファイルの該当項目を [ ] → [x] に更新"
+echo "2. git add & git commit でコミット作成"
+echo "3. git push origin [branch-name] でプッシュ"
+echo "4. 次のタスク用に新しいブランチ作成"
+echo ""
+if [ -f "./.kiro/specs/ai-schedule-assistant/tasks.md" ]; then
+    echo "📄 タスクファイル: ./.kiro/specs/ai-schedule-assistant/tasks.md"
+    echo "--- 未完了タスク（確認用） ---"
+    grep -E "\\- \\[ \\]" ./.kiro/specs/ai-schedule-assistant/tasks.md | head -3
+else
+    echo "⚠️ タスクファイルが見つかりません"
+fi
+echo "=================================="
+echo "💡 GitHub操作を忘れると進捗が追跡できません"
 '''
 
 # ===== サブタスク完了時の自動ワークフロー =====
@@ -156,14 +163,23 @@ command = '''
 echo "🎯 サブタスク完了ワークフロー"
 echo "1. ✅ タスクファイルのチェックボックス更新 [ ] → [x]"
 echo "2. 📝 わかりやすいコミットメッセージを作成済み"
-echo "3. 🚀 次の手順："
+echo "3. 🚀 次の手順（必須）："
 echo "   - git push origin [current-branch]"
 echo "   - 新しいfeatureブランチ作成（次のサブタスク用）"
+echo ""
+echo "📋 タスクファイル更新必須確認:"
+if [ -f "./.kiro/specs/ai-schedule-assistant/tasks.md" ]; then
+    echo "   ./.kiro/specs/ai-schedule-assistant/tasks.md"
+    echo "   完了したタスクを [ ] → [x] に更新してください"
+else
+    echo "   ⚠️ タスクファイルが見つかりません"
+fi
 echo ""
 echo "現在のコミット内容:"
 git show --name-only HEAD 2>/dev/null || echo "コミット内容確認中..."
 echo ""
 echo "💡 サブタスク完了後はブランチを切って次の作業に進む"
+echo "🔴 GitHub操作を忘れずに実行してください"
 '''
 
 # ===== 技術判断チェック =====
@@ -209,8 +225,8 @@ event = "PreToolUse"
 tool_name = "bash"
 command = '''
 echo "🚨 安全性確認"
-if [ -f "./.kiro/specs/task-flow-system/tasks.md" ]; then
-    grep -A3 "禁止\|注意\|リスク" ./.kiro/specs/task-flow-system/tasks.md 2>/dev/null || echo "特別な注意事項なし"
+if [ -f "./.kiro/specs/ai-schedule-assistant/tasks.md" ]; then
+    grep -A3 "禁止\|注意\|リスク" ./.kiro/specs/ai-schedule-assistant/tasks.md 2>/dev/null || echo "特別な注意事項なし"
     echo ""
     echo "✅ 必須: ユーザーの明示的許可を得る"
 else
@@ -269,12 +285,81 @@ echo "現在のフェーズ: 実装 ✅"
 echo ""
 echo "次のステップ："
 echo "1. 📋 要件との整合性確認"
-echo "2. 🧪 テスト実施（自動/手動）"
-echo "3. 📚 ドキュメント更新"
-echo "4. 🔍 コードレビュー（人間による品質確認）"
-echo "5. 🚀 デプロイ準備"
+echo "2. 🔴 タスクファイル更新（必須）"
+echo "3. 🔴 GitHub操作実行（必須）"
+echo "4. 🧪 テスト実施（自動/手動）"
+echo "5. 📚 ドキュメント更新"
+echo "6. 🔍 コードレビュー（人間による品質確認）"
+echo "7. 🚀 デプロイ準備"
 echo ""
 echo "⚠️  重要: AIが実装 → 人間が検証・承認"
+echo "🔴 GitHub操作なしでは進捗管理ができません"
+'''
+
+# ===== GitHub操作前チェック =====
+[[hooks]]
+event = "PreToolUse"
+[hooks.matcher]
+tool_name = "bash"
+[hooks.matcher]
+args = ["*git*"]
+command = '''
+echo "🐙 GitHub操作前確認"
+echo "現在のブランチ状況:"
+git branch -v 2>/dev/null || echo "Git未初期化"
+echo ""
+echo "タスクファイル確認:"
+if [ -f "./.kiro/specs/ai-schedule-assistant/tasks.md" ]; then
+    echo "--- 現在作業中のタスク ---"
+    grep -E "\\- \\[ \\]" ./.kiro/specs/ai-schedule-assistant/tasks.md | head -3
+else
+    echo "⚠️ タスクファイルが見つかりません"
+fi
+'''
+
+# ===== GitHub push後の自動タスク更新 =====
+[[hooks]]
+event = "PostToolUse"
+[hooks.matcher]
+tool_name = "bash"
+[hooks.matcher]
+args = ["*git push*"]
+command = '''
+echo "🚀 GitHub push完了"
+echo "次のアクション候補:"
+echo "1. 📋 タスクファイルの該当項目を [x] に更新"
+echo "2. 🌿 新しいfeatureブランチを作成"
+echo "3. 📝 プルリクエスト作成準備"
+echo ""
+if [ -f "./.kiro/specs/ai-schedule-assistant/tasks.md" ]; then
+    echo "💡 完了したタスクをチェックしてください:"
+    echo "   ./.kiro/specs/ai-schedule-assistant/tasks.md"
+fi
+'''
+
+# ===== プルリクエスト作成前チェック =====
+[[hooks]]
+event = "PreToolUse"
+[hooks.matcher]
+tool_name = "bash"
+[hooks.matcher]
+args = ["*gh pr create*", "*pull request*"]
+command = '''
+echo "📋 プルリクエスト作成前チェック"
+echo "必須確認項目:"
+echo "✅ 要件定義との整合性確認済み"
+echo "✅ 設計書に準拠した実装"
+echo "✅ テスト実施済み"
+echo "✅ セキュリティ要件充足"
+echo "✅ コードレビュー準備完了"
+echo ""
+echo "📄 関連ドキュメント:"
+if [ -f "./.kiro/specs/ai-schedule-assistant/requirements.md" ]; then
+    echo "- 要件定義: ./.kiro/specs/ai-schedule-assistant/requirements.md"
+fi
+if [ -f "./.kiro/specs/ai-schedule-assistant/design.md" ]; then
+    echo "- 設計書: ./.kiro/specs/ai-schedule-assistant/design.md"
+fi
 '''
 
 # ===== プロンプトエンジニアリング品質チェック =====

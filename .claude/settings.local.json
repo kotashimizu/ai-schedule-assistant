@@ -5,7 +5,10 @@
       "Bash(mkdir:*)",
       "Bash(touch:*)",
       "Bash(chmod:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(rm:*)",
+      "Bash(gh repo create:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }
