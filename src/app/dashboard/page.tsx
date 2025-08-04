@@ -2,6 +2,7 @@
 
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { useAuth } from '@/lib/auth/context';
+import { GoogleCalendarConnection } from '@/components/calendar/GoogleCalendarConnection';
 
 export default function DashboardPage() {
   const { user, signOut } = useAuth();
@@ -42,6 +43,11 @@ export default function DashboardPage() {
         {/* メインコンテンツ */}
         <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0">
+            {/* Google Calendar連携 */}
+            <div className="mb-8">
+              <GoogleCalendarConnection />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* 認証状態確認カード */}
               <div className="bg-white overflow-hidden shadow rounded-lg">

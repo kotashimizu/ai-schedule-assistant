@@ -51,7 +51,7 @@
   - OAuth2認証フローとイベントCRUD操作を構築
   - _要件: 要件1_
 
-- [ ] 2.1 Google Calendar API統合
+- [x] 2.1 Google Calendar API統合
   - Google Cloud Consoleでプロジェクト設定とAPI有効化
   - OAuth2 PKCEフローの実装（開発環境ではテストユーザーモード）
   - Google Calendar APIクライアントの作成
