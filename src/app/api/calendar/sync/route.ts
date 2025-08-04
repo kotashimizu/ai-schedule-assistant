@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 import { createUserCalendarClient } from '@/lib/google/calendar';
 
 /**
@@ -9,8 +8,22 @@ import { createUserCalendarClient } from '@/lib/google/calendar';
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerComponentClient({ cookies });
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Authorization ヘッダーからトークンを取得
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: '認証が必要です' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
       return NextResponse.json(
@@ -161,10 +174,24 @@ export async function POST(request: NextRequest) {
  * 同期状態取得API
  * GET /api/calendar/sync
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerComponentClient({ cookies });
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Authorization ヘッダーからトークンを取得
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: '認証が必要です' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
       return NextResponse.json(

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 import { createUserCalendarClient } from '@/lib/google/calendar';
+import { CalendarErrorHandler } from '@/lib/services/calendarErrorHandler';
 
 /**
  * カレンダーイベント取得・同期API
@@ -9,8 +9,22 @@ import { createUserCalendarClient } from '@/lib/google/calendar';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerComponentClient({ cookies });
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Authorization ヘッダーからトークンを取得
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: '認証が必要です' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
       return NextResponse.json(
@@ -104,11 +118,34 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('カレンダーイベント取得エラー:', error);
+    // エラーハンドリング強化
+    const calendarError = CalendarErrorHandler.handleError(error);
+    CalendarErrorHandler.logError(calendarError, 'api_calendar_events_get');
+
+    console.error('カレンダーイベント取得エラー:', {
+      code: calendarError.code,
+      message: calendarError.message,
+      details: calendarError.details,
+    });
+    
+    // HTTP ステータスコードをエラータイプに応じて設定
+    let statusCode = 500;
+    if (calendarError.code === 'AUTH_ERROR' || calendarError.code === 'TOKEN_EXPIRED') {
+      statusCode = 401;
+    } else if (calendarError.code === 'RATE_LIMIT') {
+      statusCode = 429;
+    } else if (calendarError.code === 'NO_CALENDAR') {
+      statusCode = 400;
+    }
     
     return NextResponse.json(
-      { error: 'カレンダーイベントの取得に失敗しました' },
-      { status: 500 }
+      { 
+        error: calendarError.userMessage,
+        code: calendarError.code,
+        recoverable: calendarError.recoverable,
+        retryAfter: calendarError.retryAfter,
+      },
+      { status: statusCode }
     );
   }
 }
@@ -119,8 +156,22 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerComponentClient({ cookies });
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Authorization ヘッダーからトークンを取得
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: '認証が必要です' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
       return NextResponse.json(
@@ -197,11 +248,34 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('カレンダーイベント作成エラー:', error);
+    // エラーハンドリング強化
+    const calendarError = CalendarErrorHandler.handleError(error);
+    CalendarErrorHandler.logError(calendarError, 'api_calendar_events_post');
+
+    console.error('カレンダーイベント作成エラー:', {
+      code: calendarError.code,
+      message: calendarError.message,
+      details: calendarError.details,
+    });
+    
+    // HTTP ステータスコードをエラータイプに応じて設定
+    let statusCode = 500;
+    if (calendarError.code === 'AUTH_ERROR' || calendarError.code === 'TOKEN_EXPIRED') {
+      statusCode = 401;
+    } else if (calendarError.code === 'RATE_LIMIT') {
+      statusCode = 429;
+    } else if (calendarError.code === 'NO_CALENDAR') {
+      statusCode = 400;
+    }
     
     return NextResponse.json(
-      { error: 'カレンダーイベントの作成に失敗しました' },
-      { status: 500 }
+      { 
+        error: calendarError.userMessage,
+        code: calendarError.code,
+        recoverable: calendarError.recoverable,
+        retryAfter: calendarError.retryAfter,
+      },
+      { status: statusCode }
     );
   }
 }

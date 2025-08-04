@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { GoogleCalendarEvent } from '@/types/shared';
+import { useCalendarSync } from '@/lib/hooks/useCalendarSync';
+import { CalendarErrorBanner } from './CalendarErrorBanner';
 
 interface CalendarEventListProps {
   todayOnly?: boolean;
@@ -18,48 +20,53 @@ export function CalendarEventList({
   maxResults = 50,
   onEventsFetch 
 }: CalendarEventListProps) {
-  const [events, setEvents] = useState<GoogleCalendarEvent[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastSynced, setLastSynced] = useState<string | null>(null);
+  const [showErrorBanner, setShowErrorBanner] = useState(true);
 
-  // イベント取得
-  const fetchEvents = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // useCalendarSyncフックを使用してオフライン対応とエラーハンドリングを実装
+  const {
+    events,
+    isLoading,
+    error,
+    lastSynced,
+    isConnected,
+    isOffline,
+    usingCachedData,
+    retryCount,
+    syncEvents,
+    syncTodayEvents,
+    syncMonthEvents,
+    retrySync,
+    clearError,
+    getRecoverySteps,
+  } = useCalendarSync({
+    autoSync: true,
+    syncInterval: 5,
+    onSyncSuccess: (events) => {
+      onEventsFetch?.(events);
+      setShowErrorBanner(true); // 成功時はエラーバナーを再表示可能にする
+    },
+    onSyncError: (errorMessage) => {
+      console.error('Calendar sync error:', errorMessage);
+    },
+  });
 
-      const params = new URLSearchParams();
-      if (startDate) params.append('start', startDate);
-      if (endDate) params.append('end', endDate);
-      if (todayOnly) params.append('todayOnly', 'true');
-      params.append('maxResults', maxResults.toString());
-
-      const response = await fetch(`/api/calendar/events?${params}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'イベント取得に失敗しました');
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setEvents(data.events);
-        setLastSynced(data.synced_at);
-        onEventsFetch?.(data.events);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました');
-    } finally {
-      setLoading(false);
+  // 手動更新
+  const handleRefresh = () => {
+    if (todayOnly) {
+      syncTodayEvents();
+    } else {
+      syncEvents({ startDate, endDate });
     }
   };
 
-  // 初回ロード
+  // 初回ロード時とパラメータ変更時に同期
   useEffect(() => {
-    fetchEvents();
-  }, [todayOnly, startDate, endDate, maxResults]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (todayOnly) {
+      syncTodayEvents();
+    } else {
+      syncEvents({ startDate, endDate });
+    }
+  }, [todayOnly, startDate, endDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 時間フォーマット
   const formatTime = (dateTime: string) => {
@@ -89,20 +96,6 @@ export function CalendarEventList({
     }
   };
 
-  if (loading) {
-    return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {todayOnly ? '今日の予定' : 'カレンダー'}
-          </h3>
-          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-        </div>
-        <p className="text-gray-600">イベントを読み込み中...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center justify-between mb-4">
@@ -110,25 +103,80 @@ export function CalendarEventList({
           {todayOnly ? '今日の予定' : 'カレンダー'}
         </h3>
         <div className="flex items-center space-x-2">
+          {/* 接続状態表示 */}
+          <div className="flex items-center space-x-1">
+            {isOffline ? (
+              <div className="flex items-center text-orange-600">
+                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 4a1 1 0 000 2h11.586l-4.293 4.293a1 1 0 101.414 1.414L16 7.414V19a1 1 0 102 0V7.414l4.293 4.293a1 1 0 001.414-1.414L19.414 6H18V4a1 1 0 10-2 0v2H4z" clipRule="evenodd" />
+                </svg>
+                <span className="text-xs">オフライン</span>
+              </div>
+            ) : isConnected ? (
+              <div className="flex items-center text-green-600">
+                <div className="w-2 h-2 bg-green-600 rounded-full mr-1"></div>
+                <span className="text-xs">接続中</span>
+              </div>
+            ) : (
+              <div className="flex items-center text-gray-400">
+                <div className="w-2 h-2 bg-gray-400 rounded-full mr-1"></div>
+                <span className="text-xs">未接続</span>
+              </div>
+            )}
+          </div>
+
           {lastSynced && (
             <span className="text-xs text-gray-500">
               {new Date(lastSynced).toLocaleTimeString('ja-JP')} 同期
             </span>
           )}
+          
+          {usingCachedData && (
+            <span className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+              キャッシュ
+            </span>
+          )}
+          
           <button
-            onClick={fetchEvents}
-            disabled={loading}
-            className="text-blue-600 hover:text-blue-700 text-sm font-medium disabled:opacity-50"
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="text-blue-600 hover:text-blue-700 text-sm font-medium disabled:opacity-50 flex items-center"
           >
+            {isLoading ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
+            ) : (
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            )}
             更新
           </button>
         </div>
       </div>
 
-      {/* エラー表示 */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-sm text-red-700">{error}</p>
+      {/* エラーバナー表示 */}
+      {error && showErrorBanner && (
+        <CalendarErrorBanner
+          error={error}
+          isOffline={isOffline}
+          usingCachedData={usingCachedData}
+          lastSynced={lastSynced}
+          onRetry={retrySync}
+          onDismiss={() => setShowErrorBanner(false)}
+          recoverySteps={getRecoverySteps()}
+        />
+      )}
+
+      {/* ローディング表示 */}
+      {isLoading && events.length === 0 && (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">イベントを読み込み中...</p>
+          {retryCount > 0 && (
+            <p className="text-sm text-gray-500 mt-1">
+              再試行中... ({retryCount}/3)
+            </p>
+          )}
         </div>
       )}
 
