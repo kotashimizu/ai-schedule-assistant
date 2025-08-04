@@ -23,7 +23,8 @@
       "Bash(/usr/local/Cellar/supabase/2.30.4/bin/supabase db push)",
       "Bash(npm run lint)",
       "Bash(npm run build:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(gtimeout:*)"
     ],
     "deny": []
   }

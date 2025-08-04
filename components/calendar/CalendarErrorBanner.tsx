@@ -90,7 +90,7 @@ export function CalendarErrorBanner({
     }
   };
 
-  const formatLastSynced = (date: Date | null) => {
+  const formatLastSynced = (date: Date | null | undefined) => {
     if (!date) return 'まだ同期されていません';
     
     const now = new Date();
