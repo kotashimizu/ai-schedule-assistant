@@ -37,7 +37,7 @@
   - **ブランチ名**: `feature/supabase-integration`
   - **GitHub操作**: ✅コミット → ✅プッシュ → ✅新ブランチ作成
 
-- [ ] 1.3 認証システムの基本実装
+- [x] 1.3 認証システムの基本実装
   - 開発環境用の簡易認証システムを実装
   - Google OAuth2の基本設定（テストモード）
   - AuthProviderとAuthGuardコンポーネントを作成
