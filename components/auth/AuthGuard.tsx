@@ -12,6 +12,13 @@ interface AuthGuardProps {
 export function AuthGuard({ children, fallback }: AuthGuardProps) {
   const { user, loading } = useAuth();
 
+  // 開発環境での認証バイパス
+  const bypassAuth = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
+  
+  if (bypassAuth) {
+    return <>{children}</>;
+  }
+
   // ローディング中の表示
   if (loading) {
     return (

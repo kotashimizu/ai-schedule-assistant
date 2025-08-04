@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { TaskPriority, TaskStatus } from '@/types/shared';
 
+/**
+ * Helper function to categorize time estimation accuracy
+ */
+function getAccuracyCategory(estimated: number, actual: number): string {
+  const ratio = estimated / actual;
+  if (ratio >= 0.9 && ratio <= 1.1) return 'accurate';
+  if (ratio > 1.1) return 'underestimated';
+  if (ratio < 0.9) return 'overestimated';
+  return 'unknown';
+}
+
 interface UpdateTaskRequest {
   title?: string;
   description?: string;
@@ -13,6 +24,8 @@ interface UpdateTaskRequest {
   dueDate?: string;
   scheduledDate?: string;
   eventId?: string;
+  postponeReason?: string;
+  forceActualTime?: boolean; // Force set actual time even if auto-calculated
 }
 
 /**
@@ -176,14 +189,88 @@ export async function PUT(
       }
       updateData.status = body.status;
       
+      // 開始時の処理
+      if (body.status === 'in_progress' && existingTask.status !== 'in_progress') {
+        updateData.started_at = new Date().toISOString();
+        // Initialize time tracking data
+        const currentSessions = existingTask.time_tracking_data?.sessions || [];
+        updateData.time_tracking_data = {
+          sessions: [...currentSessions, {
+            started_at: new Date().toISOString(),
+            status: 'active'
+          }]
+        };
+      }
+      
       // 完了時の処理
       if (body.status === 'completed' && existingTask.status !== 'completed') {
         updateData.completed_at = new Date().toISOString();
+        
+        // Auto-calculate actual time if not manually provided and we have start time
+        if (body.actualMinutes === undefined && !body.forceActualTime && existingTask.started_at) {
+          const startTime = new Date(existingTask.started_at);
+          const completionTime = new Date();
+          const autoCalculatedMinutes = Math.round((completionTime.getTime() - startTime.getTime()) / (1000 * 60));
+          updateData.actual_minutes = autoCalculatedMinutes;
+        }
+        
+        // Store completion metadata for analysis
+        const estimatedMinutes = body.estimatedMinutes ?? existingTask.estimated_minutes;
+        const actualMinutes = body.actualMinutes ?? updateData.actual_minutes;
+        
+        updateData.completion_metadata = {
+          completed_at: new Date().toISOString(),
+          estimated_vs_actual: estimatedMinutes && actualMinutes ? {
+            estimated: estimatedMinutes,
+            actual: actualMinutes,
+            difference_minutes: actualMinutes - estimatedMinutes,
+            efficiency_ratio: Number((estimatedMinutes / actualMinutes).toFixed(2)),
+            accuracy_category: getAccuracyCategory(estimatedMinutes, actualMinutes)
+          } : null,
+          was_postponed: (existingTask.postpone_count || 0) > 0,
+          postpone_count: existingTask.postpone_count || 0,
+          completion_context: {
+            day_of_week: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+            hour_of_day: new Date().getHours(),
+            was_scheduled: !!existingTask.scheduled_date,
+            was_due: !!existingTask.due_date,
+            overdue: existingTask.due_date ? new Date() > new Date(existingTask.due_date) : false
+          }
+        };
       }
       
       // 完了から他のステータスに戻す場合
       if (body.status !== 'completed' && existingTask.status === 'completed') {
         updateData.completed_at = null;
+        // Keep completion_metadata for historical analysis but mark as incomplete
+        if (existingTask.completion_metadata) {
+          updateData.completion_metadata = {
+            ...existingTask.completion_metadata,
+            reverted_at: new Date().toISOString(),
+            status: 'reverted'
+          };
+        }
+      }
+      
+      // Update time tracking for status changes
+      if (existingTask.status === 'in_progress' && body.status !== 'in_progress') {
+        // Close current session when leaving in_progress status
+        const currentData = existingTask.time_tracking_data || { sessions: [] };
+        const sessions = currentData.sessions || [];
+        const activeSession = sessions.find((s: any) => s.status === 'active');
+        
+        if (activeSession) {
+          activeSession.ended_at = new Date().toISOString();
+          activeSession.status = 'completed';
+          activeSession.duration_minutes = Math.round(
+            (new Date().getTime() - new Date(activeSession.started_at).getTime()) / (1000 * 60)
+          );
+        }
+        
+        updateData.time_tracking_data = {
+          ...currentData,
+          sessions: sessions
+        };
       }
     }
 
@@ -202,6 +289,10 @@ export async function PUT(
     if (body.eventId !== undefined) {
       updateData.event_id = body.eventId || null;
     }
+    
+    if (body.postponeReason !== undefined) {
+      updateData.postpone_reason = body.postponeReason ? body.postponeReason.substring(0, 500) : null;
+    }
 
     // 延期カウントの更新（スケジュール日が変更された場合）
     if (body.scheduledDate && existingTask.scheduled_date) {
@@ -209,7 +300,17 @@ export async function PUT(
       const newScheduled = new Date(body.scheduledDate);
       if (newScheduled > oldScheduled) {
         updateData.postpone_count = (existingTask.postpone_count || 0) + 1;
+        // Store postponement reason if provided
+        if (body.postponeReason) {
+          updateData.postpone_reason = body.postponeReason.substring(0, 500);
+        }
       }
+    }
+    
+    // New postponement without schedule change (manual postpone)
+    if (body.postponeReason && !body.scheduledDate) {
+      updateData.postpone_count = (existingTask.postpone_count || 0) + 1;
+      updateData.postpone_reason = body.postponeReason.substring(0, 500);
     }
 
     // タスクを更新
@@ -232,19 +333,33 @@ export async function PUT(
       throw error;
     }
 
-    // ログを記録
+    // Enhanced analytics logging
+    const analyticsData = {
+      task_id: taskId,
+      changes: Object.keys(updateData).filter(key => key !== 'updated_at'),
+      status_changed: body.status !== undefined,
+      completed: body.status === 'completed',
+      postponed: updateData.postpone_count > (existingTask.postpone_count || 0),
+      time_tracking: {
+        started: body.status === 'in_progress' && existingTask.status !== 'in_progress',
+        actual_time_recorded: body.actualMinutes !== undefined,
+        auto_calculated_time: body.actualMinutes === undefined && updateData.actual_minutes !== undefined,
+        time_accuracy: updateData.completion_metadata?.estimated_vs_actual?.accuracy_category || null,
+        efficiency_ratio: updateData.completion_metadata?.estimated_vs_actual?.efficiency_ratio || null,
+      },
+      scheduling: {
+        was_scheduled: !!existingTask.scheduled_date,
+        was_rescheduled: body.scheduledDate !== undefined && existingTask.scheduled_date !== body.scheduledDate,
+        postpone_reason_provided: !!body.postponeReason,
+      }
+    };
+
     await supabase
       .from('analytics_logs')
       .insert({
         user_id: user.id,
         event_type: 'task_updated',
-        event_data: {
-          task_id: taskId,
-          changes: Object.keys(updateData).filter(key => key !== 'updated_at'),
-          status_changed: body.status !== undefined,
-          completed: body.status === 'completed',
-          postponed: updateData.postpone_count > (existingTask.postpone_count || 0),
-        },
+        event_data: analyticsData,
       });
 
     return NextResponse.json({

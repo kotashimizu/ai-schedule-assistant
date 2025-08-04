@@ -6,7 +6,10 @@ import Link from 'next/link';
 export default function Home() {
   const { user, loading } = useAuth();
 
-  if (loading) {
+  // 開発環境での認証バイパス
+  const bypassAuth = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
+
+  if (loading && !bypassAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -25,10 +28,10 @@ export default function Home() {
             AI駆動のスケジュール管理・タスク管理アシスタント
           </p>
           
-          {user ? (
+          {user || bypassAuth ? (
             <div className="space-y-4">
               <p className="text-lg text-green-600 font-medium">
-                ようこそ、{user.email}さん！
+                {bypassAuth ? 'ようこそ！（開発モード）' : `ようこそ、${user.email}さん！`}
               </p>
               <div className="flex justify-center space-x-4">
                 <Link

@@ -24,7 +24,9 @@
       "Bash(npm run lint)",
       "Bash(npm run build:*)",
       "Bash(git checkout:*)",
-      "Bash(gtimeout:*)"
+      "Bash(gtimeout:*)",
+      "Bash(npx supabase migration:*)",
+      "Bash(npx supabase:*)"
     ],
     "deny": []
   }
