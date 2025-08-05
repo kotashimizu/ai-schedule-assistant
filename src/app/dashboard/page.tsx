@@ -110,8 +110,8 @@ export default function DashboardPage() {
 
               {/* サイドバー（右側1カラム） */}
               <div className="space-y-6">
-                {/* カレンダーウィジェット */}
-                <CalendarWidget />
+                {/* カレンダーウィジェット - スティッキーポジション対応 */}
+                <CalendarWidget sticky={true} />
                 
                 {/* スケジュールタイムライン */}
                 <ScheduleTimeline />
