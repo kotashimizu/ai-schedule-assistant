@@ -28,7 +28,8 @@
       "Bash(npx supabase migration:*)",
       "Bash(npx supabase:*)",
       "Bash(find:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(gh pr create:*)"
     ],
     "deny": []
   },
